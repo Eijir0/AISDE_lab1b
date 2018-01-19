@@ -39,6 +39,14 @@ public class Path {
         }
     }
 
+    public int findById(int id){
+        for (Pair p: fibreNumByEdgesId) {
+            if(p.left == id)
+                return p.right;
+        }
+        return 0;
+    }
+
     public class Pair {
         private int left;
         private int right;
@@ -56,6 +64,7 @@ public class Path {
         }
 
         public void addRight(int val) { this.right += val; }
+
     }
 
 }

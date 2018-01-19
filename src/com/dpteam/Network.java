@@ -3,16 +3,13 @@ package com.dpteam;
 import org.graphstream.graph.*;
 import org.graphstream.graph.Node;
 import org.graphstream.graph.implementations.SingleGraph;
-import org.graphstream.stream.sync.SourceTime;
 import org.graphstream.ui.view.Viewer;
 
 
 import java.io.*;
 import java.io.BufferedReader;
 import java.io.FileReader;
-import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Iterator;
 
 
 public class Network {
@@ -25,6 +22,9 @@ public class Network {
     private ArrayList<Path> paths = new ArrayList<>();
     private Path nett = null;
     private final static int INF = Integer.MAX_VALUE/2;
+    private int [][] cableCost;
+    private ArrayList<Integer>[][] cableUsed;
+    private int maxFiber;
 
     private String styleSheet =
             "node {" +
@@ -134,8 +134,11 @@ public class Network {
         System.out.println("main " + main);
         for(int i : optional)
             System.out.println("optional " + i);
-        for(Vertex v : target)
+        for(Vertex v : target ){
             System.out.println("target " + v.getId());
+            maxFiber += v.getCustomerNum();
+        }
+
 
         //getting net
         for (Vertex v : target) {
@@ -181,14 +184,15 @@ public class Network {
 
         for (int i = 0; i < edges.length; i++){
             org.graphstream.graph.Edge e = graph.addEdge(edges[i].getId() +"", edges[i].getStartVertex() +"", edges[i].getEndVertex() +"");
-            e.addAttribute("ui.label",""+ edges[i].getValue());
+           // e.addAttribute("ui.label",""+ edges[i].getValue());
         }
 
         Viewer viewer = graph.display();
         viewer.disableAutoLayout();
 
         Path path = nett;
-
+        ArrayList<Integer> tmp;
+        String label;
         if(path != null){
             for (Integer id: path.getVerticesId()){
                 Node n = graph.getNode(id + "");
@@ -197,6 +201,12 @@ public class Network {
             for (Integer id: path.getEdgesId()){
                 org.graphstream.graph.Edge e = graph.getEdge(id +"");
                 e.addAttribute("ui.class", "marked");
+                tmp = cableUsed[nett.findById(id)-1][2];
+                label = "";
+                for (Integer i: tmp){
+                    label += i + "\t";
+                }
+                e.addAttribute("ui.label", label);
             }
        }
     }
@@ -286,4 +296,63 @@ public class Network {
         }
         return cables[i];
     }
+
+    public void calcCosts(){
+        cableCost = new int[maxFiber][cables.length];
+        cableUsed = new ArrayList[maxFiber][cables.length];
+        int leftCost = 0;
+        int lowCost = 0;
+        ArrayList<Integer> leftCable = new ArrayList<>();
+        ArrayList<Integer> lowCable = new ArrayList<>();
+
+        for (int i = 0; i < maxFiber; i++)
+            System.out.print(i+1+"\t");
+        System.out.println();
+
+        for (int c = 0; c < cables.length; c++){
+            for (int i = 0; i < maxFiber; i++){
+
+                cableUsed[i][c] = new ArrayList<>();
+
+                if(i+1-cables[c].getCapacity() <= 0){
+                    leftCable.clear();
+                    leftCost = 0;
+                }
+                else{
+                    copyList(cableUsed[i-cables[c].getCapacity()][c], leftCable);
+                    leftCost = cableCost[i-cables[c].getCapacity()][c];
+                }
+
+                if(c-1 < 0) {
+                    lowCost = INF;
+                    lowCable.clear();
+                }
+                else {
+                    copyList(cableUsed[i][c - 1],lowCable);
+                    lowCost = cableCost[i][c - 1];
+                }
+                if(leftCost + cables[c].getCost() < lowCost) {
+                    cableCost[i][c] = leftCost + cables[c].getCost();
+                    copyList(leftCable,cableUsed[i][c]);
+                    cableUsed[i][c].add(c+1);
+                }
+                else {
+                    cableCost[i][c] = lowCost;
+                    copyList(lowCable,cableUsed[i][c]);
+                }
+                System.out.print(cableCost[i][c] + "\t");
+                }
+            System.out.println(c+1);
+            }
+        for (Integer i: cableUsed[8][2]) {
+            System.out.println(i);
+        }
+        }
+
+        private void copyList(ArrayList copied, ArrayList copy){
+        copy.clear();
+            for (Object o: copied){
+                copy.add(o);
+            }
+        }
 }

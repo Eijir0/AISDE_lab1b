@@ -6,8 +6,10 @@ public class Main {
 
         Network net = new Network();
         net.readNetwork("lab.txt");
+
         net.useAlgorithm();
         System.out.println();
+        net.calcCosts();
         net.showNet();
 
     }
